@@ -3,7 +3,7 @@
 자바웹프로그래밍(2) 수업 실습 프로젝트입니다.
 
 - 학번: 20220672
-- GitHub 저장소: [seungjoon1105/demo](https://github.com/seungjoon1105/demo)
+- GitHub 저장소: [seungjoon1105/java-web-2](https://github.com/seungjoon1105/java-web-2)
 - Java 25 · Spring Boot 4.1.1 · MySQL 8 · Thymeleaf · Spring Security
 
 **[7주차 실습 내용 바로가기](#week7)** · [실행 방법](#실행) · [테스트](#테스트)
@@ -303,8 +303,8 @@ src/main/resources/
 
 ### VS Code에서 실행
 
-1. `springboot_20220672/demo` 폴더를 엽니다.
-2. 실행 및 디버그에서 `Spring Boot-DemoApplication<demo>`를 선택합니다.
+1. `springboot_20220672/java-web-2` 폴더를 엽니다.
+2. 실행 및 디버그에서 `Spring Boot-java-web-2`를 선택합니다.
 3. F5 또는 실행 버튼을 누릅니다.
 4. 로컬 실행 설정의 `수업 MySQL 준비` 작업이 Docker와 기존 `mysql-server`를 먼저 준비합니다.
 5. `Started DemoApplication`이 표시되면 [메인 화면](http://localhost:8080)에 접속합니다.
