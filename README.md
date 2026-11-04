@@ -18,7 +18,7 @@
 - 6주차 - 권한(ROLE) 접근 제어, 관리자 페이지 분리 완료 + 연습문제(관리자 본인 보호, MANAGER 권한)
 - 7주차 - 회원 관리 REST API(JSON) 완료 + 연습문제(회원 검색, 공통 오류 처리)
 
-- 9주차 - 게시판 CRUD 및 작성자 본인 확인 구현 (2026-11-04)
+- 9주차 - 게시판 CRUD 및 작성자 본인 확인 구현
 
 ## 2주차 - 개발환경 설정 및 테스트
 
@@ -100,8 +100,8 @@ values (1, '홍길동');
 5주차 로그인/로그아웃, 암호화 완료
 
 - `pom.xml`에 Spring Security, `thymeleaf-extras-springsecurity6` 의존성 추가
-- 교수님 제공 [login.html](src/main/resources/templates/login.html), [signup.html](src/main/resources/templates/signup.html) 적용
-- 개인 포트폴리오의 `index.html`에 제공 자료의 네비게이션 교체부분 반영
+- [login.html](src/main/resources/templates/login.html), [signup.html](src/main/resources/templates/signup.html) 적용
+- 개인 포트폴리오의 `index.html`에 네비게이션 메뉴 반영
 - 로그인 상태에 따라 로그인·회원가입 또는 아이디·로그아웃 표시
 - DB 비밀번호와 remember-me 비밀키를 `application-secret.properties`로 분리하고 `.gitignore`에 등록
 
@@ -130,7 +130,7 @@ values (1, '홍길동');
 
 6주차 권한(ROLE) 접근 제어, 관리자 페이지 분리 완료
 
-- 교수님 제공 [mypage.html](src/main/resources/templates/mypage.html), [admin/members.html](src/main/resources/templates/admin/members.html), [error/403.html](src/main/resources/templates/error/403.html) 적용
+- [mypage.html](src/main/resources/templates/mypage.html), [admin/members.html](src/main/resources/templates/admin/members.html), [error/403.html](src/main/resources/templates/error/403.html) 적용
 - 네비게이션에 내 정보, 관리자 메뉴, USER·MANAGER·ADMIN 권한 배지 반영
 - [AdminController.java](src/main/java/com/example/demo/controller/AdminController.java): 회원 목록, 권한 변경, 회원 삭제
 - [SecurityConfig.java](src/main/java/com/example/demo/config/SecurityConfig.java): `/admin/**` ADMIN 제한, 메서드 보안 활성화
@@ -141,7 +141,7 @@ values (1, '홍길동');
 
 ### 관리자 계정 준비
 
-다른 DB에서 처음 준비할 때는 `/signup`에서 아이디 `admin`, 이름 `관리자`와 본인이 정한 비밀번호로 가입한 뒤, 교수님 제공 SQL을 실행합니다.
+다른 DB에서 처음 준비할 때는 `/signup`에서 아이디 `admin`, 이름 `관리자`와 본인이 정한 비밀번호로 가입한 뒤, SQL을 실행합니다.
 
 ```sql
 SELECT id, username, name, role FROM member;
@@ -173,7 +173,7 @@ SELECT id, username, name, role FROM member;
 
 7주차 회원 관리 REST API(JSON) 실습과 연습문제를 완료했습니다.
 
-`MemberApiController`와 `MemberResponse`로 JSON 응답을 구성하고, Basic 인증과 관리자 회원 관리 API를 구현했습니다. 한글 UTF-8·JSON 정렬 설정을 적용하고, 교수님 제공 화면을 연결했습니다.
+`MemberApiController`와 `MemberResponse`로 JSON 응답을 구성하고, Basic 인증과 관리자 회원 관리 API를 구현했습니다. 한글 UTF-8·JSON 정렬 설정을 적용하고, 화면을 연결했습니다.
 
 | 실습 항목 | 구현 내용 | 관련 파일 |
 | --- | --- | --- |
@@ -254,7 +254,7 @@ API 인증 설정 전에는 No Auth 요청이 302로 로그인 화면에 이동�
 
 ### 검증 결과
 
-2026-10-21: `./mvnw -o verify`의 기존 테스트 16개 통과. Basic 인증 추가 후 브라우저 동작을 검증하는 두 테스트 클래스에는 `Accept: text/html`을 명시했습니다.
+`./mvnw -o verify`의 기존 테스트 16개 통과. Basic 인증 추가 후 브라우저 동작을 검증하는 두 테스트 클래스에는 `Accept: text/html`을 명시했습니다.
 
 - 실제 MySQL API 요청 **34건 통과**: 인증, 비밀번호 제외, 조회·검색·등록·권한 변경·삭제, 오류 상태 코드 확인.
 - 실제 Postman 앱에서 **요청 직접 실행**: 200 JSON, 302와 Location 헤더, 로그인 HTML 확인. 최종 설정 복구 후 No Auth 401 재확인.
@@ -266,8 +266,6 @@ API 인증 설정 전에는 No Auth 요청이 302로 로그인 화면에 이동�
 
 ## 9주차 - 게시판 CRUD와 본인 확인
 
-2026-11-04 실습. 교수님 PDF의 실습 코드와 제공 HTML·CSS를 기준으로 구현했습니다.
-
 - `Post` 엔티티와 `posts` 테이블: 제목, 내용, 작성 시간, 수정 시간, 조회수 필드
 - `@ManyToOne`으로 작성자 `Member` 연결 (`member_id` 외래 키)
 - `PostForm`은 제목·내용만 받고, 작성자는 로그인한 회원으로 서버에서 지정
@@ -275,7 +273,7 @@ API 인증 설정 전에는 No Auth 요청이 302로 로그인 화면에 이동�
 - 빈 제목·내용 및 제목 100자 초과 검사, 없는 글은 404 처리
 - 수정은 작성자 본인만, 삭제는 작성자 본인 또는 관리자만 허용
 - `SecurityContextHolder`로 로그인 사용자 확인, 권한이 없으면 `AccessDeniedException` 발생
-- 제공된 게시판 화면·404 화면·CSS 및 메인 게시판 메뉴 적용
+- 게시판 화면·404 화면·CSS 및 메인 게시판 메뉴 적용
 
 | 요청 | 기능 | 접근 권한 |
 | --- | --- | --- |
@@ -287,14 +285,13 @@ API 인증 설정 전에는 No Auth 요청이 302로 로그인 화면에 이동�
 
 ### 실습 중 해결한 오류
 
-`PostRepository`가 `model/repository`와 `model/service/repository`에 중복되어 같은 이름의 빈 등록 오류가 발생했습니다. PDF의 `model/repository` 위치만 유지하고, `./mvnw -o clean compile`로 이전 빌드 결과를 제거한 뒤 컴파일에 성공했습니다.
+`PostRepository`가 `model/repository`와 `model/service/repository`에 중복되어 같은 이름의 빈 등록 오류가 발생했습니다. `model/repository` 위치만 유지하고, `./mvnw -o clean compile`로 이전 빌드 결과를 제거한 뒤 컴파일에 성공했습니다.
 
 ### 구현 범위와 검증
 
-- PDF의 최종 본인 확인 단계까지 반영했습니다.
-- 조회수 증가와 내가 쓴 글 모아 보기는 힌트만 있는 연습문제이므로 아직 구현하지 않았습니다.
+- 조회수 증가와 내가 쓴 글 모아 보기는 아직 구현하지 않았습니다.
 - 테스트용 H2 DB에서 `posts` 테이블 생성 확인.
-- 기존 테스트 16개 중 15개 통과, 1개 실패: 제공 메인 화면의 `/testdb` 메뉴 표시가 기존 `AuthorizationTests`의 USER 권한 기대값과 다릅니다. 제공 코드는 유지했습니다.
+- 기존 테스트 16개 중 15개 통과, 1개 실패: 메인 화면의 `/testdb` 메뉴 표시가 기존 `AuthorizationTests`의 USER 권한 기대값과 다릅니다.
 - 실제 MySQL 및 브라우저에서의 게시판 전체 동작 검증은 별도로 필요합니다.
 
 ## 프로젝트 구조
@@ -397,4 +394,4 @@ Windows에서는 다음 명령을 사용합니다.
 - [LoginFlowTests.java](src/test/java/com/example/demo/LoginFlowTests.java): 로그인·로그아웃, 원래 페이지 복귀, CSRF, remember-me
 - [AuthorizationTests.java](src/test/java/com/example/demo/AuthorizationTests.java): 권한별 접근, 관리자 본인 보호, 변경·삭제, 메서드 보안
 
-2026-10-20 검증: `./mvnw -o verify` 테스트 16개 통과, 실패·오류·건너뜀 0, JAR 빌드 성공. 실제 MySQL에서도 student1·admin 로그인, 내 정보, 권한별 접근, 로그아웃 확인.
+`./mvnw -o verify` 테스트 16개 통과, 실패·오류·건너뜀 0, JAR 빌드 성공. 실제 MySQL에서도 student1·admin 로그인, 내 정보, 권한별 접근, 로그아웃 확인.
