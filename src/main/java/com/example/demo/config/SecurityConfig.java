@@ -36,6 +36,7 @@ public class SecurityConfig {
                 .requestMatchers("/testdb").hasAnyRole("ADMIN", "MANAGER") // [6주차 연습문제]
                 .requestMatchers("/api/hello").permitAll()
                 .requestMatchers("/api/me").authenticated() // [6주차] 내 정보 API
+                .requestMatchers("/board", "/board/{id:\\d+}").permitAll() // 게시판 목록·상세 : 누구나
                 .anyRequest().authenticated())
             .formLogin(form -> form
                 .loginPage("/login")

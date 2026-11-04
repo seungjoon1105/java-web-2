@@ -6,7 +6,7 @@
 - GitHub 저장소: [seungjoon1105/java-web-2](https://github.com/seungjoon1105/java-web-2)
 - Java 25 · Spring Boot 4.1.1 · MySQL 8 · Thymeleaf · Spring Security
 
-**[7주차 실습 내용 바로가기](#week7)** · [실행 방법](#실행) · [테스트](#테스트)
+**[9주차 실습 내용 바로가기](#week9)** · [7주차 실습](#week7) · [실행 방법](#실행) · [테스트](#테스트)
 
 ## 진행 현황
 
@@ -17,6 +17,8 @@
 - 5주차 - 로그인/로그아웃, 암호화 완료 + 연습문제(로그인 상태 유지, 비밀번호 확인)
 - 6주차 - 권한(ROLE) 접근 제어, 관리자 페이지 분리 완료 + 연습문제(관리자 본인 보호, MANAGER 권한)
 - 7주차 - 회원 관리 REST API(JSON) 완료 + 연습문제(회원 검색, 공통 오류 처리)
+
+- 9주차 - 게시판 CRUD 및 작성자 본인 확인 구현 (2026-11-04)
 
 ## 2주차 - 개발환경 설정 및 테스트
 
@@ -260,6 +262,41 @@ API 인증 설정 전에는 No Auth 요청이 302로 로그인 화면에 이동�
 - 화면 작업 중 **페이지 새로고침 0회, JavaScript 오류 0건** 확인.
 - 기존 student1·admin 계정과 권한 유지. 검증용 회원만 등록·삭제.
 
+<a id="week9"></a>
+
+## 9주차 - 게시판 CRUD와 본인 확인
+
+2026-11-04 실습. 교수님 PDF의 실습 코드와 제공 HTML·CSS를 기준으로 구현했습니다.
+
+- `Post` 엔티티와 `posts` 테이블: 제목, 내용, 작성 시간, 수정 시간, 조회수 필드
+- `@ManyToOne`으로 작성자 `Member` 연결 (`member_id` 외래 키)
+- `PostForm`은 제목·내용만 받고, 작성자는 로그인한 회원으로 서버에서 지정
+- `PostRepository`, `PostService`, `BoardController`로 목록·상세·글쓰기·수정·삭제 구현
+- 빈 제목·내용 및 제목 100자 초과 검사, 없는 글은 404 처리
+- 수정은 작성자 본인만, 삭제는 작성자 본인 또는 관리자만 허용
+- `SecurityContextHolder`로 로그인 사용자 확인, 권한이 없으면 `AccessDeniedException` 발생
+- 제공된 게시판 화면·404 화면·CSS 및 메인 게시판 메뉴 적용
+
+| 요청 | 기능 | 접근 권한 |
+| --- | --- | --- |
+| `GET /board` | 최신 글부터 목록 조회 | 누구나 |
+| `GET /board/{id}` | 상세 조회 | 누구나 |
+| `GET /board/write`, `POST /board/write` | 글쓰기 화면·저장 | 로그인 사용자 |
+| `GET /board/{id}/edit`, `POST /board/{id}/edit` | 수정 화면·저장 | 작성자 본인 |
+| `POST /board/{id}/delete` | 글 삭제 | 작성자 또는 관리자 |
+
+### 실습 중 해결한 오류
+
+`PostRepository`가 `model/repository`와 `model/service/repository`에 중복되어 같은 이름의 빈 등록 오류가 발생했습니다. PDF의 `model/repository` 위치만 유지하고, `./mvnw -o clean compile`로 이전 빌드 결과를 제거한 뒤 컴파일에 성공했습니다.
+
+### 구현 범위와 검증
+
+- PDF의 최종 본인 확인 단계까지 반영했습니다.
+- 조회수 증가와 내가 쓴 글 모아 보기는 힌트만 있는 연습문제이므로 아직 구현하지 않았습니다.
+- 테스트용 H2 DB에서 `posts` 테이블 생성 확인.
+- 기존 테스트 16개 중 15개 통과, 1개 실패: 제공 메인 화면의 `/testdb` 메뉴 표시가 기존 `AuthorizationTests`의 USER 권한 기대값과 다릅니다. 제공 코드는 유지했습니다.
+- 실제 MySQL 및 브라우저에서의 게시판 전체 동작 검증은 별도로 필요합니다.
+
 ## 프로젝트 구조
 
 ```text
@@ -268,6 +305,7 @@ src/main/java/com/example/demo/
 ├── config/
 │   └── SecurityConfig.java
 ├── controller/
+│   ├── BoardController.java
 │   ├── DemoController.java
 │   ├── MemberController.java
 │   ├── AdminController.java
@@ -275,10 +313,10 @@ src/main/java/com/example/demo/
 │   ├── AdminApiController.java
 │   └── ApiExceptionHandler.java
 └── model/
-    ├── domain/       # Member, TestDB
-    ├── dto/          # MemberForm, MemberResponse, RoleRequest
-    ├── repository/   # MemberRepository, TestRepository
-    └── service/      # MemberService, TestService
+    ├── domain/       # Member, TestDB, Post
+    ├── dto/          # MemberForm, MemberResponse, RoleRequest, PostForm
+    ├── repository/   # MemberRepository, TestRepository, PostRepository
+    └── service/      # MemberService, TestService, PostService
 
 src/main/resources/
 ├── application.properties
@@ -294,6 +332,8 @@ src/main/resources/
     ├── mypage.html
     ├── admin/members.html
     ├── admin/members-api.html
+    ├── board/           # list.html, detail.html, form.html
+    ├── error/404.html
     └── error/403.html
 ```
 
