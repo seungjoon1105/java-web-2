@@ -6,7 +6,7 @@
 - GitHub 저장소: [seungjoon1105/java-web-2](https://github.com/seungjoon1105/java-web-2)
 - Java 25 · Spring Boot 4.1.1 · MySQL 8 · Thymeleaf · Spring Security
 
-**[9주차 실습 내용 바로가기](#week9)** · [7주차 실습](#week7) · [실행 방법](#실행) · [테스트](#테스트)
+**[10주차 실습 내용 바로가기](#week10)** · [9주차 실습](#week9) · [7주차 실습](#week7) · [실행 방법](#실행) · [테스트](#테스트)
 
 ## 진행 현황
 
@@ -19,6 +19,7 @@
 - 7주차 - 회원 관리 REST API(JSON) 완료 + 연습문제(회원 검색, 공통 오류 처리)
 
 - 9주차 - 게시판 CRUD 및 작성자 본인 확인 구현
+- 10주차 - 페이징·검색·댓글 및 연관 데이터 삭제 처리 구현
 
 ## 2주차 - 개발환경 설정 및 테스트
 
@@ -289,10 +290,52 @@ API 인증 설정 전에는 No Auth 요청이 302로 로그인 화면에 이동�
 
 ### 구현 범위와 검증
 
-- 조회수 증가와 내가 쓴 글 모아 보기는 아직 구현하지 않았습니다.
+- 9주차 기준으로 조회수 증가와 내가 쓴 글 모아 보기는 미구현이었습니다. 내가 쓴 글은 10주차에서 연결했습니다.
 - 테스트용 H2 DB에서 `posts` 테이블 생성 확인.
-- 기존 테스트 16개 중 15개 통과, 1개 실패: 메인 화면의 `/testdb` 메뉴 표시가 기존 `AuthorizationTests`의 USER 권한 기대값과 다릅니다.
-- 실제 MySQL 및 브라우저에서의 게시판 전체 동작 검증은 별도로 필요합니다.
+- 9주차 당시 기존 테스트 16개 중 15개 통과, 1개 실패(10주차에서 해결): 메인 화면의 `/testdb` 메뉴 표시가 기존 `AuthorizationTests`의 USER 권한 기대값과 다릅니다.
+- 10주차의 추가 구현과 검증 결과는 아래에 정리했습니다.
+
+<a id="week10"></a>
+
+## 10주차 - 페이징·검색·댓글
+
+9주차 게시판에 페이지 번호 방식의 페이징, 제목·내용 검색, 댓글 등록·삭제를 추가했습니다.
+
+| 실습 항목 | 구현 내용 | 관련 파일 |
+| --- | --- | --- |
+| 페이징 | 최신 글부터 10개씩 조회, 전체 글 수와 페이지 번호 표시, 음수 페이지는 첫 페이지로 처리 | [PostService.java](src/main/java/com/example/demo/model/service/PostService.java), [BoardController.java](src/main/java/com/example/demo/controller/BoardController.java) |
+| 검색 | JPQL로 제목 또는 내용 검색, 검색 결과에도 페이징 적용, 페이지 이동 시 검색어 유지 | [PostRepository.java](src/main/java/com/example/demo/model/repository/PostRepository.java), [list.html](src/main/resources/templates/board/list.html) |
+| 댓글 등록 | 로그인 사용자 이름으로 저장, 1~500자 검사, 오래된 댓글부터 표시, 등록 후 리다이렉트 | [Comment.java](src/main/java/com/example/demo/model/domain/Comment.java), [CommentRepository.java](src/main/java/com/example/demo/model/repository/CommentRepository.java), [CommentService.java](src/main/java/com/example/demo/model/service/CommentService.java), [CommentController.java](src/main/java/com/example/demo/controller/CommentController.java) |
+| 댓글 삭제 | 작성자 본인 또는 관리자만 허용, 글 번호와 댓글 소속이 다르면 404 | [CommentService.java](src/main/java/com/example/demo/model/service/CommentService.java), [detail.html](src/main/resources/templates/board/detail.html) |
+| 글 삭제 정리 | `CascadeType.REMOVE`로 댓글을 먼저 삭제, 목록 제목 옆 댓글 수 표시 | [Post.java](src/main/java/com/example/demo/model/domain/Post.java) |
+| 회원 삭제 정리 | 작성한 글이나 댓글이 있는 회원은 삭제를 막고 안내 메시지 표시 | [MemberService.java](src/main/java/com/example/demo/model/service/MemberService.java) |
+| 내가 쓴 글 | 로그인 회원의 글만 최신순으로 페이지 조회, 기존 목록 화면 재사용 | [BoardController.java](src/main/java/com/example/demo/controller/BoardController.java) |
+
+### 요청 주소와 접근 권한
+
+| 메서드 | 주소 | 기능·접근 권한 |
+| --- | --- | --- |
+| GET | `/board?page=0` | 전체 글 목록, 누구나 |
+| GET | `/board?keyword=스터디&page=1` | 검색 결과의 두 번째 페이지, 누구나 |
+| GET | `/board/my` | 내가 쓴 글, 로그인 필요 |
+| GET | `/board/{id}` | 글과 댓글 목록, 누구나 |
+| POST | `/board/{postId}/comments` | 댓글 등록, 로그인 필요 |
+| POST | `/board/{postId}/comments/{id}/delete` | 댓글 삭제, 댓글 작성자 또는 관리자 |
+
+### 실습 중 해결한 오류
+
+- 제공 파일이 `templates/templates/board`와 `templates/static/css`에 들어가 기존 화면이 표시되던 문제를 해결했습니다. 실제 경로는 `src/main/resources/templates/board`와 `src/main/resources/static/css`입니다.
+- `CommentRepository`는 `model/repository` 한 곳에만 두어 중복 빈 등록을 방지했습니다.
+- `/testdb` 메뉴는 ADMIN·MANAGER에게만 표시하여 기존 권한 테스트와 일치시켰습니다.
+- 글 삭제 시 댓글 외래 키 오류를 막고, 글·댓글이 있는 회원 삭제는 서비스에서 사전에 차단합니다.
+
+### 검증 결과
+
+- `./mvnw -o verify`: 기존 테스트 16개와 게시판 통합 테스트 3개, 총 19개 통과 및 JAR 빌드 성공.
+- [BoardFlowTests.java](src/test/java/com/example/demo/BoardFlowTests.java): 페이징·제목/본문 검색·내 글 목록, 댓글 등록·입력 검사·CSRF·삭제 권한·소속 검사, 글과 댓글 함께 삭제·회원 삭제 차단 검증.
+- 제공된 `10주차_테스트글_105개.sql`을 로컬 MySQL에 1회 실행했습니다. 기존 글 1개를 유지하여 전체 106개, 11페이지 표시를 확인했습니다.
+- 실제 Safari에서 `스터디` 검색 결과 13개, 두 번째 페이지의 나머지 3개와 검색어 유지를 확인했습니다. 비로그인 상세 화면에서 댓글 목록과 로그인 안내 표시를 확인했습니다.
+- 다른 DB에서는 제공 SQL을 별도로 실행합니다. 현재 실습 글은 MySQL 데이터이며 소스 업로드만으로 다른 DB에 자동 생성되지 않습니다.
 
 ## 프로젝트 구조
 
@@ -303,6 +346,7 @@ src/main/java/com/example/demo/
 │   └── SecurityConfig.java
 ├── controller/
 │   ├── BoardController.java
+│   ├── CommentController.java
 │   ├── DemoController.java
 │   ├── MemberController.java
 │   ├── AdminController.java
@@ -310,10 +354,10 @@ src/main/java/com/example/demo/
 │   ├── AdminApiController.java
 │   └── ApiExceptionHandler.java
 └── model/
-    ├── domain/       # Member, TestDB, Post
+    ├── domain/       # Member, TestDB, Post, Comment
     ├── dto/          # MemberForm, MemberResponse, RoleRequest, PostForm
-    ├── repository/   # MemberRepository, TestRepository, PostRepository
-    └── service/      # MemberService, TestService, PostService
+    ├── repository/   # MemberRepository, TestRepository, PostRepository, CommentRepository
+    └── service/      # MemberService, TestService, PostService, CommentService
 
 src/main/resources/
 ├── application.properties
@@ -394,4 +438,6 @@ Windows에서는 다음 명령을 사용합니다.
 - [LoginFlowTests.java](src/test/java/com/example/demo/LoginFlowTests.java): 로그인·로그아웃, 원래 페이지 복귀, CSRF, remember-me
 - [AuthorizationTests.java](src/test/java/com/example/demo/AuthorizationTests.java): 권한별 접근, 관리자 본인 보호, 변경·삭제, 메서드 보안
 
-`./mvnw -o verify` 테스트 16개 통과, 실패·오류·건너뜀 0, JAR 빌드 성공. 실제 MySQL에서도 student1·admin 로그인, 내 정보, 권한별 접근, 로그아웃 확인.
+- [BoardFlowTests.java](src/test/java/com/example/demo/BoardFlowTests.java): 게시판 페이징·검색·댓글·삭제 권한·연관 데이터 삭제
+
+`./mvnw -o verify` 테스트 19개 통과, 실패·오류·건너뜀 0, JAR 빌드 성공. 실제 MySQL에서도 student1·admin 로그인, 내 정보, 권한별 접근, 로그아웃 확인.

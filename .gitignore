@@ -35,3 +35,6 @@ build/
 # Local secrets and database files
 application-secret.properties
 data/
+
+# macOS metadata
+.DS_Store

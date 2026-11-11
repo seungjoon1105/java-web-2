@@ -12,6 +12,9 @@ import org.springframework.stereotype.Service;
 import com.example.demo.model.domain.Member;
 import com.example.demo.model.dto.MemberForm;
 import com.example.demo.model.repository.MemberRepository;
+import com.example.demo.model.repository.PostRepository;
+import com.example.demo.model.repository.CommentRepository;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service // 서비스 등록
 public class MemberService implements UserDetailsService {
@@ -19,6 +22,11 @@ public class MemberService implements UserDetailsService {
     private MemberRepository memberRepository;
     @Autowired // SecurityConfig 에 등록한 BCryptPasswordEncoder 주입
     private PasswordEncoder passwordEncoder;
+
+    @Autowired
+    private PostRepository postRepository;
+    @Autowired
+    private CommentRepository commentRepository;
 
     // [6주차 연습문제] MANAGER 권한 추가
     private static final List<String> ROLES = List.of("USER", "MANAGER", "ADMIN");
@@ -92,6 +100,7 @@ public class MemberService implements UserDetailsService {
     }
 
     @PreAuthorize("hasRole('ADMIN')")
+    @Transactional
     public void deleteMember(Long id) {
         Member member = memberRepository.findById(id)
             .orElseThrow(() -> new IllegalArgumentException("회원이 존재하지 않습니다."));
@@ -99,6 +108,9 @@ public class MemberService implements UserDetailsService {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
         if (member.getUsername().equals(username)) {
             throw new IllegalArgumentException("자기 자신의 권한 변경·삭제는 할 수 없습니다.");
+        }
+        if (postRepository.existsByAuthor(member) || commentRepository.existsByAuthor(member)) {
+            throw new IllegalArgumentException("작성한 글이나 댓글이 있는 회원은 삭제할 수 없습니다.");
         }
         memberRepository.delete(member);
     }
