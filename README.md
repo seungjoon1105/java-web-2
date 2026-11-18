@@ -6,7 +6,7 @@
 - 개발 환경: Java 25, Spring Boot 4.1.1, MySQL 8
 - 사용 기술: Spring Data JPA, Thymeleaf, Spring Security, Bootstrap 5
 
-[7주차](#week7) · [9주차](#week9) · [10주차](#week10) · [실행 방법](#실행-방법)
+[7주차](#week7) · [9주차](#week9) · [10주차](#week10) · [11주차](#week11) · [실행 방법](#실행-방법)
 
 ## 1~2주차 - 개발 환경 설정
 
@@ -233,6 +233,47 @@ Authorization에서 Basic Auth를 선택하고 가입한 계정으로 요청.
 - 페이징, 검색, 댓글 등록·삭제 권한, 글 삭제 시 댓글 삭제, 회원 삭제 제한 테스트
 
 관련 파일: [list.html](src/main/resources/templates/board/list.html), [detail.html](src/main/resources/templates/board/detail.html), [board.css](src/main/resources/static/css/board.css), [Comment.java](src/main/java/com/example/demo/model/domain/Comment.java), [CommentController.java](src/main/java/com/example/demo/controller/CommentController.java), [CommentService.java](src/main/java/com/example/demo/model/service/CommentService.java), [CommentRepository.java](src/main/java/com/example/demo/model/repository/CommentRepository.java)
+
+<a id="week11"></a>
+
+## 11주차 - 신청 바구니와 트랜잭션
+
+### 모집글과 포스터
+
+- 기존 게시글에 정원(`capacity`), 신청 인원(`appliedCount`), 포스터 파일명(`posterFile`) 추가
+- 정원을 비우면 일반 글로 저장하고, 모집글의 정원은 1~100명으로 제한
+- 목록에 `모집 0/5` 또는 `마감`을 표시하고, 상세에서 정원·신청 인원·남은 자리 확인
+- `FileStore`에서 이미지 확장자와 파일 시그니처를 검사한 뒤 `uploads/`에 UUID 이름으로 저장. DB에는 파일명만 저장
+- `WebConfig`에서 `/uploads/`로 포스터를 제공. 업로드 제한은 파일 한 개 5MB, 요청 전체 10MB로 설정
+
+### 신청 바구니와 신청 확정
+
+- 로그인한 회원의 바구니에 모집글 번호를 `LinkedHashSet`으로 저장해 중복 없이 담은 순서를 유지
+- 신청 확정 시 중복 신청과 마감 여부를 확인한 뒤 `enrollments`에 내역을 저장하고 게시글의 신청 인원을 1명 늘림
+- 성공하면 바구니를 비우고 확정 건수를 표시. 실패하면 바구니를 유지하고 실패 이유를 표시
+
+| 요청 | 기능 |
+| --- | --- |
+| `GET /cart` | 신청 바구니와 내 신청 내역 확인 |
+| `POST /cart/{postId}` | 모집글 담기 |
+| `POST /cart/{postId}/remove` | 모집글 빼기 |
+| `POST /cart/confirm` | 바구니에 담은 모집글 신청 확정 |
+
+### 트랜잭션 실습
+
+[11주차_신청테스트.sql](11주차_신청테스트.sql)로 정원 5명인 A·B와 정원 1명인 C를 준비. `student1`이 B와 C를 순서대로 담고, `student3`이 C를 먼저 신청해 마감시킨 뒤 `student1`이 모두 신청 확정을 누르는 흐름을 비교.
+
+| 단계 | 결과 |
+| --- | --- |
+| PDF 37페이지 | C에서 마감 안내가 뜨고, 먼저 처리된 B는 `1/5`로 남음 |
+| `@Transactional` 적용 후 | C에서 마감 안내가 뜨면 B 신청 내역과 인원 증가도 롤백되어 B는 `0/5`로 유지 |
+
+### 오류 정리
+
+- 새로 만든 `WebConfig.java`, `CartController.java`에 패키지 선언이 빠져 Spring이 설정과 컨트롤러를 찾지 못함. 각 파일의 패키지를 선언해 해결.
+- 신청 확정 버튼이 400 오류를 반환함. 이전 서버가 `/cart/confirm`의 `confirm`을 모집글 번호로 해석하고 있었고, 서버를 재시작해 신청 확정 경로를 반영함.
+
+관련 파일: [FileStore.java](src/main/java/com/example/demo/model/service/FileStore.java), [CartController.java](src/main/java/com/example/demo/controller/CartController.java), [Enrollment.java](src/main/java/com/example/demo/model/domain/Enrollment.java), [EnrollmentService.java](src/main/java/com/example/demo/model/service/EnrollmentService.java), [cart.html](src/main/resources/templates/cart.html)
 
 ## 폴더 구성
 
