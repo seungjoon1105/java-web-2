@@ -6,7 +6,7 @@
 - 개발 환경: Java 25, Spring Boot 4.1.1, MySQL 8
 - 사용 기술: Spring Data JPA, Thymeleaf, Spring Security, Bootstrap 5
 
-[7주차](#week7) · [9주차](#week9) · [10주차](#week10) · [11주차](#week11) · [실행 방법](#실행-방법)
+[7주차](#week7) · [9주차](#week9) · [10주차](#week10) · [11주차](#week11) · [12주차](#week12) · [실행 방법](#실행-방법)
 
 ## 1~2주차 - 개발 환경 설정
 
@@ -274,6 +274,29 @@ Authorization에서 Basic Auth를 선택하고 가입한 계정으로 요청.
 - 신청 확정 버튼이 400 오류를 반환함. 이전 서버가 `/cart/confirm`의 `confirm`을 모집글 번호로 해석하고 있었고, 서버를 재시작해 신청 확정 경로를 반영함.
 
 관련 파일: [FileStore.java](src/main/java/com/example/demo/model/service/FileStore.java), [CartController.java](src/main/java/com/example/demo/controller/CartController.java), [Enrollment.java](src/main/java/com/example/demo/model/domain/Enrollment.java), [EnrollmentService.java](src/main/java/com/example/demo/model/service/EnrollmentService.java), [cart.html](src/main/resources/templates/cart.html)
+
+<a id="week12"></a>
+
+## 12주차 - WebSocket 실시간 알림
+
+### 연결과 화면 갱신
+
+- `pom.xml`에 WebSocket 의존성을 추가하고 Spring Boot의 `/ws`에 STOMP로 연결.
+- 게시판 목록·상세와 신청 바구니에 연결 상태 표시. `/topic/seats`를 구독해 신청 인원, 남은 자리, 모집 상태를 새로고침 없이 갱신.
+- 신청이 확정되면 모집글 작성자에게 개인 알림 발송. 로그인한 작성자의 화면에 알림과 종 배지가 표시됨.
+
+### 커밋 후 알림 처리
+
+- 신청 처리 중에는 이벤트만 발행하고, DB 커밋이 끝난 뒤 `@TransactionalEventListener`에서 메시지 전송.
+- B와 C를 함께 신청할 때 C가 이미 마감되어 롤백되면, B의 신청 인원도 그대로이고 화면 갱신이나 알림도 발생하지 않음.
+
+### 연습문제
+
+- 신청 바구니의 내 신청 내역에서 취소하면 남은 자리가 늘어나고 작성자에게 취소 알림 전송. 정원 1명인 글이 마감 상태에서 다시 모집 중으로 바뀌는지 확인.
+- 다른 사람이 댓글을 달면 글쓴이에게 개인 알림 전송. 자기 글에 직접 댓글을 달았을 때는 알림 생략.
+- 서버 재시작 후 게시판에서 `● 실시간 연결됨` 표시 확인. 신청·취소·댓글 알림과 롤백 처리를 포함해 자동 테스트 24개 통과.
+
+관련 파일: [WebSocketConfig.java](src/main/java/com/example/demo/config/WebSocketConfig.java), [RealtimeNotifier.java](src/main/java/com/example/demo/model/service/RealtimeNotifier.java), [EnrollmentService.java](src/main/java/com/example/demo/model/service/EnrollmentService.java), [CommentService.java](src/main/java/com/example/demo/model/service/CommentService.java), [realtime.js](src/main/resources/static/js/realtime.js)
 
 ## 폴더 구성
 
