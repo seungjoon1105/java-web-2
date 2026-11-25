@@ -38,6 +38,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/me").authenticated() // [6주차] 내 정보 API
                 .requestMatchers("/board", "/board/{id:\\d+}").permitAll() // 게시판 목록·상세 : 누구나
                 .requestMatchers("/uploads/**").permitAll() // [11주차] 포스터 이미지 : 누구나 (올리기는 글쓰기라서 로그인)
+                .requestMatchers("/ws").permitAll() // [12주차] 비로그인 사용자도 남은 자리 구독 가능
                 .anyRequest().authenticated())
             .formLogin(form -> form
                 .loginPage("/login")

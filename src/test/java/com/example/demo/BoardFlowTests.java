@@ -1,12 +1,16 @@
 package com.example.demo;
 
 import java.time.LocalDateTime;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.List;
 import jakarta.servlet.Filter;
 import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.*;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockHttpSession;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.User;
@@ -14,6 +18,7 @@ import org.springframework.security.web.context.HttpSessionSecurityContextReposi
 import org.springframework.test.web.servlet.*;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.web.context.WebApplicationContext;
 import com.example.demo.model.domain.*;
 import com.example.demo.model.repository.*;
@@ -35,6 +40,10 @@ class BoardFlowTests {
     @Autowired PostRepository posts;
     @Autowired MemberRepository members;
     @Autowired CommentRepository comments;
+    @Autowired EnrollmentRepository enrollments;
+    @Autowired EnrollmentService enrollmentService;
+    @Autowired FileStore fileStore;
+    @Value("${app.upload-dir:uploads}") String uploadDir;
     @Autowired PostService postService;
     @Autowired CommentService commentService;
     @Autowired MemberService memberService;
@@ -134,5 +143,79 @@ class BoardFlowTests {
         assertFalse(posts.existsById(p.getId())); assertFalse(comments.existsById(c.getId()));
         memberService.deleteMember(other.getId()); members.flush();
         assertFalse(members.existsById(other.getId()));
+    }
+
+    @Test void onlyApplicantCanCancelAndReopenFullRecruitment() throws Exception {
+        Post recruitment = article("C", "정원 1명");
+        recruitment.setCapacity(1);
+        enrollmentService.confirm(other.getUsername(), List.of(recruitment.getId()));
+        Long enrollmentId = enrollments.findByMember_UsernameOrderByIdDesc(other.getUsername()).getFirst().getId();
+        String cancelUrl = "/cart/enrollments/" + enrollmentId + "/cancel";
+        var memberSession = session(other);
+        var cart = mvc.perform(get("/cart").session(memberSession)).andExpect(status().isOk()).andReturn();
+        assertTrue(cart.getResponse().getContentAsString().contains("action=\"" + cancelUrl + "\""));
+
+        var writerSession = session(writer);
+        String writerToken = csrf(mvc.perform(get("/board/" + recruitment.getId()).session(writerSession)).andReturn());
+        mvc.perform(post(cancelUrl).session(writerSession).param("_csrf", writerToken))
+                .andExpect(status().isForbidden());
+        assertTrue(recruitment.isFull());
+        assertTrue(enrollments.existsById(enrollmentId));
+
+        mvc.perform(post(cancelUrl).session(memberSession).param("_csrf", csrf(cart)))
+                .andExpect(redirectedUrl("/cart"))
+                .andExpect(flash().attribute("message", "신청이 취소되었습니다."));
+        entityManager.flush();
+        entityManager.clear();
+        assertFalse(enrollments.existsById(enrollmentId));
+        assertEquals(1, posts.findById(recruitment.getId()).orElseThrow().getRemaining());
+    }
+
+    @Test void deletionIsBlockedWhileRecruitmentHasApplicants() throws Exception {
+        Post recruitment = article("B", "정원 5명");
+        recruitment.setCapacity(5);
+        enrollmentService.confirm(other.getUsername(), List.of(recruitment.getId()));
+
+        String detailUrl = "/board/" + recruitment.getId();
+        var writerSession = session(writer);
+        String token = csrf(mvc.perform(get(detailUrl).session(writerSession)).andReturn());
+        mvc.perform(post(detailUrl + "/delete").session(writerSession).param("_csrf", token))
+                .andExpect(redirectedUrl(detailUrl + "?deleteError"));
+        mvc.perform(get(detailUrl).param("deleteError", ""))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("신청자가 있는 모집글은 삭제할 수 없습니다.")));
+        mvc.perform(delete("/api/admin/members/" + other.getId()).session(session(admin)).accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("신청 내역이 있는 회원은 삭제할 수 없습니다."));
+
+        assertTrue(posts.existsById(recruitment.getId()));
+        assertTrue(members.existsById(other.getId()));
+    }
+
+    @Test
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
+    void deletingPostAlsoDeletesItsPosterAfterCommit() throws Exception {
+        Post recruitment = article("포스터 삭제 테스트", "삭제 확인");
+        String storedName = fileStore.save(new MockMultipartFile("poster", "poster.png", "image/png",
+                new byte[]{(byte) 0x89, 0x50, 0x4e, 0x47}));
+        try {
+            recruitment.setCapacity(5);
+            recruitment.setPosterFile(storedName);
+            posts.saveAndFlush(recruitment);
+            Path poster = Path.of(uploadDir).resolve(storedName);
+            assertTrue(Files.exists(poster));
+
+            String detailUrl = "/board/" + recruitment.getId();
+            var writerSession = session(writer);
+            String token = csrf(mvc.perform(get(detailUrl).session(writerSession)).andReturn());
+            mvc.perform(post(detailUrl + "/delete").session(writerSession).param("_csrf", token))
+                    .andExpect(redirectedUrl("/board?deleted"));
+
+            assertFalse(posts.existsById(recruitment.getId()));
+            assertFalse(Files.exists(poster));
+        } finally {
+            fileStore.delete(storedName);
+            posts.deleteById(recruitment.getId());
+            members.deleteAll(List.of(writer, other, admin));
+        }
     }
 }

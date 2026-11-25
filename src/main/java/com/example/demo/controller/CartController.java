@@ -67,6 +67,13 @@ public class CartController {
     }
     return "redirect:/cart";
     }
+
+    @PostMapping("/enrollments/{id}/cancel")
+    public String cancel(@PathVariable Long id, Principal principal, RedirectAttributes redirect) {
+        enrollmentService.cancel(id, principal.getName());
+        redirect.addFlashAttribute("message", "신청이 취소되었습니다.");
+        return "redirect:/cart";
+    }
 }
 
 

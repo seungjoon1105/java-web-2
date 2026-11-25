@@ -7,10 +7,13 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.stereotype.Service;
 import com.example.demo.model.domain.Member;
 import com.example.demo.model.domain.Post;
 import com.example.demo.model.dto.PostForm;
+import com.example.demo.model.repository.EnrollmentRepository;
 import com.example.demo.model.repository.MemberRepository;
 import com.example.demo.model.repository.PostRepository;
 import java.util.Collection;
@@ -28,6 +31,9 @@ public class PostService {
 
     @Autowired
     private MemberRepository memberRepository;
+
+    @Autowired
+    private EnrollmentRepository enrollmentRepository;
 
     @Autowired // [11주차] 단계 2 : 업로드 파일 저장소 (제공 코드)
     private FileStore fileStore;
@@ -110,10 +116,23 @@ public class PostService {
         return postRepository.save(post); // id 가 있으니 UPDATE
     }
     @Transactional
-    public void delete(Long id) { // 글 삭제 (본인 또는 관리자)
+    public boolean delete(Long id) { // 글 삭제 (본인 또는 관리자)
         Post post = findById(id);
         if (!isAdmin()) checkWriter(post); // ★ 추가 : 관리자는 누구 글이든 삭제 가능
+        if (enrollmentRepository.existsByPost(post)) {
+            return false;
+        }
         postRepository.delete(post);
+        String posterFile = post.getPosterFile();
+        if (posterFile != null) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    fileStore.delete(posterFile);
+                }
+            });
+        }
+        return true;
     }
     private void checkWriter(Post post) { // 로그인한 사람이 글쓴이인지 → 아니면 403
         String loginUsername = SecurityContextHolder.getContext().getAuthentication().getName();

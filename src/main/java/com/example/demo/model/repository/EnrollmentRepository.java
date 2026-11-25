@@ -9,6 +9,8 @@ import com.example.demo.model.domain.Enrollment; import com.example.demo.model.d
 public interface EnrollmentRepository extends JpaRepository<Enrollment, Long> {
     // 이미 신청했는지 : SELECT ... WHERE member_id = ? AND post_id = ?
     boolean existsByMemberAndPost(Member member, Post post);
+    boolean existsByPost(Post post);
+    boolean existsByMember(Member member);
     // 내 신청 내역 (최근 신청이 위로) : member → username 으로 찾기
     List<Enrollment> findByMember_UsernameOrderByIdDesc(String username);
 }
